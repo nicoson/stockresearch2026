@@ -1,7 +1,7 @@
 from typing import List, Sequence, Union
 from pyecharts import options as opts
 from pyecharts.commons.utils import JsCode
-from pyecharts.charts import Kline, Line, Bar, Grid
+from pyecharts.charts import Kline, Line, Bar, Grid, Scatter
 from util import config as cf
 import sys
 sys.path.append(cf.get_config('projectpath', 'path_util'))
@@ -445,7 +445,11 @@ def k_line(data, stock_code, cid=0):
             yaxis_opts=opts.AxisOpts(
                 is_scale=True, splitline_opts=opts.SplitLineOpts(is_show=True)
             ),
-            tooltip_opts=opts.TooltipOpts(trigger="axis", axis_pointer_type="line"),
+            tooltip_opts=opts.TooltipOpts(
+                trigger="axis", 
+                axis_pointer_type="cross",
+                # position = [10,10],
+            ),
             datazoom_opts=[
                 opts.DataZoomOpts(is_show=False, is_zoom_on_mouse_wheel=False, type_="inside", xaxis_index=[0, 0], range_start=90, range_end=100),
                 opts.DataZoomOpts(is_show=True, xaxis_index=[0, 1], pos_top="440px", range_start=90, range_end=100),
@@ -462,8 +466,11 @@ def k_line(data, stock_code, cid=0):
         )
     )
     
+    signal_data = ana.cal_ohcl([row[0] for row in data["datas"]], [row[1] for row in data["datas"]], [row[2] for row in data["datas"]], [row[3] for row in data["datas"]], data['amount'], data['times'])
+
     # 主图叠加
     return (kline
+            .overlap(signal_scatter(signal_data["date"], signal_data["value"], cid=0))
             .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 5, opacity=0.9, line_type='solid', cid=cid))
             .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 10, opacity=0.9, line_type='solid', cid=cid))
             .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 20, opacity=0.9, line_type='solid', cid=cid))
@@ -507,6 +514,7 @@ def norm_line(xdata, ydata, series_name, opacity=0.9, line_type='solid', cid=0):
             label_opts=opts.LabelOpts(is_show=False),
             is_symbol_show=False,
             symbol=["circle"],
+            tooltip_opts=opts.TooltipOpts(is_show=False)
         )
         # .set_global_opts(
         #     xaxis_opts=opts.AxisOpts(
@@ -523,6 +531,42 @@ def norm_line(xdata, ydata, series_name, opacity=0.9, line_type='solid', cid=0):
         #         axislabel_opts=opts.LabelOpts(is_show=True),
         #     ),
         # )
+    )
+
+# 信号散点图
+def signal_scatter(xdata, ydata, cid=0):
+    return (
+            Scatter().add_xaxis(xaxis_data=xdata)
+            .add_yaxis(
+                series_name = "",
+                y_axis = ydata,
+                xaxis_index = cid,
+                yaxis_index = cid,
+                color = "red",
+                symbol = 'triangle',
+                symbol_size = 10,
+                label_opts = opts.LabelOpts(
+                    is_show = True,
+                    position = 'top',
+                    color = 'red',
+                    # distance = 10,
+                    font_size = 12,
+                    font_weight = 'bold',
+                    formatter = 'S'
+                ),
+                tooltip_opts=opts.TooltipOpts(is_show=False),
+            )
+            .set_series_opts()
+            .set_global_opts(
+                xaxis_opts=opts.AxisOpts(
+                    type_="value", splitline_opts=opts.SplitLineOpts(is_show=True)
+                ),
+                yaxis_opts=opts.AxisOpts(
+                    type_="value",
+                    axistick_opts=opts.AxisTickOpts(is_show=True),
+                    splitline_opts=opts.SplitLineOpts(is_show=True),
+                )
+            )
     )
 
 # 交易量柱状图
@@ -694,8 +738,9 @@ def emotion_bar(data, title_pos=100, cid=0):
     return vbar
 
 def opinion_bar(data, title_pos=100, cid=0):
-    opinion = ana.cal_opinion([row[3] for row in data['datas']], [row[2] for row in data['datas']], data['amount'], data['vols'], data['div_adj'])
+    # opinion = ana.cal_opinion([row[3] for row in data['datas']], [row[2] for row in data['datas']], data['amount'], data['vols'], data['div_adj'])
     # opi_std = ana.cal_move_std(opinion, 5)
+    opinion = ana.cal_opinion2([row[3] for row in data['datas']], [row[2] for row in data['datas']], [row[1] for row in data['datas']])
     vbar = (
         Bar()
         .add_xaxis(xaxis_data=data["times"])
@@ -747,6 +792,32 @@ def realcostdif_bar(data, title_pos=100, cid=0):
     )
     return vbar
 
+def test_bar(data, title_pos=100, cid=0):
+    xdata = data['times']
+    ydata = ana.cal_test([row[0] for row in data["datas"]], [row[1] for row in data["datas"]], [row[2] for row in data["datas"]], [row[3] for row in data["datas"]], data['amount'])
+    vbar = (
+        Bar()
+        .add_xaxis(xaxis_data=xdata)
+        .add_yaxis(
+            series_name="Opinion",
+            y_axis=ydata,
+            xaxis_index=cid,
+            yaxis_index=cid,
+            label_opts=opts.LabelOpts(is_show=False),
+            tooltip_opts=opts.TooltipOpts(is_show=False),
+        )
+        .set_global_opts(
+            title_opts=opts.TitleOpts(title="短期实际成本差异柱状图", pos_left="100px", pos_top=str(title_pos)+"px", title_textstyle_opts=opts.TextStyleOpts(
+                font_size='14px', font_family="Microsoft YaHei")),
+            xaxis_opts=opts.AxisOpts(
+                type_="category",
+                grid_index=cid,
+                axislabel_opts=opts.LabelOpts(is_show=False),
+            ),
+            legend_opts=opts.LegendOpts(is_show=False),
+        )
+    )
+    return vbar
 
 # 实际成本均线差异曲线图
 def realcostdif_line(data, title_pos=100, cid=0):
@@ -833,6 +904,7 @@ def macd_bar(data, title_pos=100, cid=0):
                         """
                 )
             ),
+            tooltip_opts=opts.TooltipOpts(is_show=False),
         )
         .set_global_opts(
             title_opts=opts.TitleOpts(title="MACD", pos_left="100px", pos_top=str(title_pos)+"px", title_textstyle_opts=opts.TextStyleOpts(
@@ -863,7 +935,8 @@ def macd_bar(data, title_pos=100, cid=0):
             xaxis_index=cid,
             yaxis_index=cid,
             is_symbol_show=False,
-            label_opts=opts.LabelOpts(is_show=False),
+            label_opts=opts.LabelOpts(is_show=True),
+            tooltip_opts=opts.TooltipOpts(is_show=False),
         )
         .add_yaxis(
             series_name="DEA",
@@ -871,7 +944,8 @@ def macd_bar(data, title_pos=100, cid=0):
             xaxis_index=cid,
             yaxis_index=cid,
             is_symbol_show=False,
-            label_opts=opts.LabelOpts(is_show=False),
+            label_opts=opts.LabelOpts(is_show=True),
+            tooltip_opts=opts.TooltipOpts(is_show=False),
         )
         .set_global_opts(legend_opts=opts.LegendOpts(is_show=False))
     )
@@ -897,7 +971,7 @@ def draw_chart(data, stock_code, savedir):
 
     # 添加其他子图
     # grid的cid必须严格按照 grid_chart 的 add 顺序从0开始编号，否则html会报错。所以此处用函数来处理，避免出错
-    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['realcostbar', 'opinion', 'turnover', 'macd'], data=data, start_pos=490, height=100)
+    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['testbar', 'turnover', 'macd'], data=data, start_pos=490, height=100)
 
     # 保存 html 文件的文件名
     filename = savedir + "/kline_chart_" + stock_code + ".html"
@@ -931,6 +1005,7 @@ chart_funcs = {
     'costspace': costspace_line,
     'opinion': opinion_bar,
     'realcostbar': realcostdif_bar,
+    'testbar': test_bar,
 }
 
 def draw_subchart(grid_body, chart_set, data, start_pos=490, height=100):

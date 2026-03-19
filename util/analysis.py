@@ -2,7 +2,7 @@ from typing import List, Sequence, Union
 from pyecharts import options as opts
 from pyecharts.commons.utils import JsCode
 from pyecharts.charts import Kline, Line, Bar, Grid
-import os
+# import os
 import numpy as np
 
 # Pandas Dataframe -> Dict
@@ -142,3 +142,49 @@ def cal_opinion(high, low, amount, volume, div_adj):
     # 收盘价 - 加权成本
     opinion = [(c - l)/(h - l)*100 if h>l else 100 for h, l, c in zip(high, low, cost_adj)]
     return opinion
+
+def cal_opinion2(high, low, close):
+    opinion = [(h - l)/c*100 for h, l, c in zip(high, low, close)]
+    return opinion
+
+def cal_test(open, close, low, high, amount):
+    ohch = [0]
+    ohcl = [0]
+    olch = [0]
+    olcl = [0]
+    for i in range(1, len(open)):
+        ohch.append(0)
+        ohcl.append(0)
+        olch.append(0)
+        olcl.append(0)
+        strength = abs(float("%.4f" % ((close[i] - open[i])/close[i-1])))
+        # strength = amount[i]
+        if strength >= 0.02:
+            if open[i] >= close[i-1]:
+                if close[i] >= close[i-1]:
+                    ohch[i] = amount[i]#strength
+                else:
+                    ohcl[i] = amount[i]#strength
+            else:
+                if close[i] >= close[i-1]:
+                    olch[i] = amount[i]#strength
+                else:
+                    olcl[i] = amount[i]#strength
+
+    return ohcl
+
+# open high close low, sell signal
+def cal_ohcl(open, close, low, high, amount, date):
+    signal_day = []
+    ohcl = []
+    for i in range(1, len(open)):
+        if open[i] >= close[i-1] and close[i] < close[i-1]:
+            strength = abs(float("%.4f" % ((close[i] - open[i])/close[i-1])))
+            if strength >= 0.02:
+                ohcl.append(high[i]*1.05)#strength
+                signal_day.append(date[i])
+
+    return {
+        "date": signal_day,
+        "value": ohcl,
+    }

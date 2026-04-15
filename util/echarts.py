@@ -399,7 +399,7 @@ def split_data_part(data) -> Sequence:
     return mark_line_data
 
 # K线作图
-def k_line(data, stock_code, cid=0):
+def k_line(data, stock_code, cid=0, adj=True):
 # 主K线图
     kline = (
         Kline()
@@ -413,12 +413,12 @@ def k_line(data, stock_code, cid=0):
                 border_color="#ef232a",
                 border_color0="#14b143",
             ),
-            markpoint_opts=opts.MarkPointOpts(
-                data=[
-                    opts.MarkPointItem(type_="max", name="最大值"),
-                    opts.MarkPointItem(type_="min", name="最小值"),
-                ]
-            ),
+            # markpoint_opts=opts.MarkPointOpts(
+            #     data=[
+            #         opts.MarkPointItem(type_="max", name="最大值"),
+            #         opts.MarkPointItem(type_="min", name="最小值"),
+            #     ]
+            # ),
             markline_opts=opts.MarkLineOpts(
                 label_opts=opts.LabelOpts(
                     position="middle", color="blue", font_size=15
@@ -469,23 +469,26 @@ def k_line(data, stock_code, cid=0):
     signal_data = ana.cal_ohcl([row[0] for row in data["datas"]], [row[1] for row in data["datas"]], [row[2] for row in data["datas"]], [row[3] for row in data["datas"]], data['amount'], data['times'])
 
     # 主图叠加
-    return (kline
-            .overlap(signal_scatter(signal_data["date"], signal_data["value"], cid=0))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 5, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 10, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 20, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 40, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 60, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 120, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 240, opacity=0.9, line_type='solid', cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 5, line_type='dashed', cid=cid))
+    (kline.overlap(signal_scatter(signal_data["date"], signal_data["value"], cid=0))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 5, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 10, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 20, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 40, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 60, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 120, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 240, opacity=0.9, line_type='solid', cid=cid)))
+
+    if adj:
+        (kline.overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 5, line_type='dashed', cid=cid))
             .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 10, line_type='dashed', cid=cid))
             .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 20, line_type='dashed', cid=cid))
             .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 40, line_type='dashed', cid=cid))
             .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 60, line_type='dashed', cid=cid))
             .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 120, line_type='dashed', cid=cid))
             .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 240, line_type='dashed', cid=cid))
-            )
+        )
+
+    return kline
 
 # 滑动平均线作图
 def ma_line(xdata, ydata, day_count, opacity=0.9, line_type='solid', cid=0):
@@ -552,7 +555,7 @@ def signal_scatter(xdata, ydata, cid=0):
                     # distance = 10,
                     font_size = 12,
                     font_weight = 'bold',
-                    formatter = 'S'
+                    formatter = 'C'
                 ),
                 tooltip_opts=opts.TooltipOpts(is_show=False),
             )
@@ -819,6 +822,33 @@ def test_bar(data, title_pos=100, cid=0):
     )
     return vbar
 
+def slope_bar(data, title_pos=100, cid=0):
+    xdata = data['times']
+    ydata = ana.cal_slope([row[1] for row in data["datas"]], 10)
+    vbar = (
+        Bar()
+        .add_xaxis(xaxis_data=xdata)
+        .add_yaxis(
+            series_name="slope-angle",
+            y_axis=ydata,
+            xaxis_index=cid,
+            yaxis_index=cid,
+            label_opts=opts.LabelOpts(is_show=False),
+            tooltip_opts=opts.TooltipOpts(is_show=False),
+        )
+        .set_global_opts(
+            title_opts=opts.TitleOpts(title="短周期趋势强度", pos_left="100px", pos_top=str(title_pos)+"px", title_textstyle_opts=opts.TextStyleOpts(
+                font_size='14px', font_family="Microsoft YaHei")),
+            xaxis_opts=opts.AxisOpts(
+                type_="category",
+                grid_index=cid,
+                axislabel_opts=opts.LabelOpts(is_show=False),
+            ),
+            legend_opts=opts.LegendOpts(is_show=False),
+        )
+    )
+    return vbar
+
 # 实际成本均线差异曲线图
 def realcostdif_line(data, title_pos=100, cid=0):
     xdata = data['times']
@@ -953,7 +983,7 @@ def macd_bar(data, title_pos=100, cid=0):
     return mbar.overlap(mline)
 
 
-def draw_chart(data, stock_code, savedir):
+def draw_chart(data, stock_code, savedir, adj=True):
     # 绘制的 Grid
     # 全局配置参见：https://pyecharts.org/#/zh-cn/global_options?id=initopts%ef%bc%9a%e5%88%9d%e5%a7%8b%e5%8c%96%e9%85%8d%e7%bd%ae%e9%a1%b9
     grid_chart = Grid(init_opts=opts.InitOpts(width = "1200px", height="1000px"))
@@ -963,7 +993,7 @@ def draw_chart(data, stock_code, savedir):
     grid_chart.add_js_funcs("var barData = {}".format(data["datas"]))
 
     # K线图和 MA5 的折线图
-    kline = k_line(data, stock_code, cid=0)    # k 线图
+    kline = k_line(data, stock_code, cid=0, adj=adj)    # k 线图
     grid_chart.add(
         kline,
         grid_opts=opts.GridOpts(pos_left="7%", pos_right="1%", height="350px"),
@@ -971,7 +1001,7 @@ def draw_chart(data, stock_code, savedir):
 
     # 添加其他子图
     # grid的cid必须严格按照 grid_chart 的 add 顺序从0开始编号，否则html会报错。所以此处用函数来处理，避免出错
-    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['testbar', 'turnover', 'macd'], data=data, start_pos=490, height=100)
+    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['slope', 'turnover', 'macd'], data=data, start_pos=490, height=100)
 
     # 保存 html 文件的文件名
     filename = savedir + "/kline_chart_" + stock_code + ".html"
@@ -1006,6 +1036,7 @@ chart_funcs = {
     'opinion': opinion_bar,
     'realcostbar': realcostdif_bar,
     'testbar': test_bar,
+    'slope': slope_bar,
 }
 
 def draw_subchart(grid_body, chart_set, data, start_pos=490, height=100):

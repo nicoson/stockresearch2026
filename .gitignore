@@ -1,2 +1,3 @@
 data/*.*
 imgs/*.html
+util/__pycache__

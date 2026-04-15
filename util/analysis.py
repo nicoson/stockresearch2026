@@ -147,6 +147,22 @@ def cal_opinion2(high, low, close):
     opinion = [(h - l)/c*100 for h, l, c in zip(high, low, close)]
     return opinion
 
+# 计算近N日价格走势的斜率
+def cal_slope(close, day_count):
+    slope = []
+    
+    for i in range(len(close)):
+        if i < (day_count-1):
+            slope.append(0)
+            continue
+
+        x = np.array([j for j in range(0,day_count)])
+        y = np.array(close[(i+1-day_count):(i+1)])
+        coefficients = np.polyfit(x, y, 1)
+        slope.append(float(coefficients[0]/close[i+1-day_count]))
+    
+    return slope
+
 def cal_test(open, close, low, high, amount):
     ohch = [0]
     ohcl = [0]

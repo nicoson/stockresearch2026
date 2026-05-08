@@ -16,6 +16,7 @@ def draw_echarts(pd_data, stock_code, adj):
 def draw_pyplot(pd_data, stock_code, start_time='2024-06-01', end_time='2025-12-31'):
     import mplfinance as mpf
     
+    pd_data['date']=pd.to_datetime(pd_data['date'])
     pd_data = pd_data.set_index('date')
     data = pd_data.loc[start_time:end_time]
     # fig = plt.figure()
@@ -54,4 +55,4 @@ if __name__ == '__main__':
     # print(bool(args.adj))
     main(args.file, args.code, args.style, bool(args.adj))
     # main('tencent_SZ002594.xlsx', '002594 比亚迪', 'echarts', True)
-    # main('tencent_SH000001.xlsx', '000001 上证指数', 'echarts', False)
+    # main('tencent_SH688111.xlsx', '000001 上证指数', 'echarts', False)

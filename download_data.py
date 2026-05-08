@@ -99,9 +99,11 @@ def fetch_data_tencent(market='SH', code='588000', start_year=1990):
 
 def main(market, code, source):
     filename = cf.get_config('projectpath', 'path_data')+source+'_'+market+code+'.xlsx'
+    print('\n######### start fetching data: ', market+code)
     df = fetch_data(market, code, source, filename=filename)
-    rw.write_data(df, filename)
     print(df)
+    rw.write_data(df, filename)
+    print('######### done\n')
 
 
 # example: python download_data.py --market=SH --code=588000 --source=tencent
@@ -113,4 +115,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     main(args.market, args.code, args.source)
-    # main('SZ', '002594', 'tencent')
+    # main('SH', '510050', 'tencent')

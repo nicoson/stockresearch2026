@@ -20,3 +20,35 @@ tushare.js          nodejs http方式请求tushare数据
 ```shell
 > conda activate stockresearch
 > which python
+```
+
+## 初始化执行
+在文件 *init_sh.py* 中配置股票代码清单，并执行如下命令：
+
+```shell
+> python init_sh.py
+```
+
+以上初始化命令将生成初始执行文件
+* exec.sh：用以执行下载/更新图表程序；
+* ./imgs/stocklist.js：用以执行dashboard.htm的代码配置文件
+
+## 更新股票列表
+通初始化执行一致，当修改了股票代码清单后，需要再次执行初始化命令，用以更新执行程序的配置文件
+
+## 更新图表
+执行如下命令，可更新股票分析网页：
+
+```shell
+> sh exec.sh -n all
+```
+
+如果无需更新数据，仅更新图表，则执行如下命令：
+
+```shell
+> sh exec.sh -n update
+```
+
+## 图表展示
+在浏览器中打开如下目录中的文件即可：
+./imgs/dashboard.htm

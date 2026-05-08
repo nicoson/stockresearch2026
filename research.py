@@ -1,7 +1,11 @@
-import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
-# import numpy as np
+from util import config as cf
+from util import rw as rw
+import numpy as np
+# import sys
+# sys.path.append(cf.get_config('projectpath', 'path_util'))
+from util import analysis as ana
 
 TREND_DOWN = pd.DataFrame([
     ['2020-08-05','2020-09-30'],
@@ -42,25 +46,38 @@ TREND_CONSOLID = pd.DataFrame([
     ['2025-06-23','2025-08-13']
 ], columns=['begin', 'end'])
 
-def load_data(filename=None):
-    if filename != None:
-        pd_data = pd.read_excel('./data/'+filename)
-    
-    return pd_data
 
-def draw_echarts(pd_data, stock_code):
-    from util import echarts as ec
-    new_d = ec.arrange_data(pd_data)
-    ec.draw_chart(new_d, stock_code)
+def draw_pyplot(pd_data, stock_code):
+    # pd_data = pd_data.set_index('date')
+    ydata = pd_data['volume']
+    low = pd_data['low']
+    high = pd_data['high']
+    xdata = [(h-l)/l*100 for l,h in zip(low,high)]
 
+    x = []
+    y = []
+    for i in range(len(xdata)):
+        if i < (20-1):
+            continue
+        else:
+            if ydata.iloc[i] == max(ydata[(i-20+1):(i+1)]):
+                x.append(xdata[i])
+                y.append(ydata.iloc[i])
 
-def draw_pyplot(pd_data, stock_code, start_time='2024-06-01', end_time='2025-12-31'):
+    plt.plot(x, y, 'bo')
+    plt.title(stock_code)
+    plt.xlabel("price diversity")
+    plt.ylabel("volume")
+    plt.show()
+
+def draw_kline(pd_data, stock_code):
     import mplfinance as mpf
+    
+    pd_data['date']=pd.to_datetime(pd_data['date'])
     pd_data = pd_data.set_index('date')
-    data = pd_data.loc[start_time:end_time]
     # fig = plt.figure()
     mpf.plot(
-        data=data[['open', 'high', 'low', 'close', 'volume']],
+        data=pd_data[['open', 'high', 'low', 'close', 'volume']],
         volume=True,
         mav=(5, 20, 60, 120, 240),
         type="candle",
@@ -71,19 +88,18 @@ def draw_pyplot(pd_data, stock_code, start_time='2024-06-01', end_time='2025-12-
     )
     plt.show()
 
-def main(file, code):
-    df = load_data(file)
-    df.set_index('date', inplace=True)
-    print('=========> Data loaded successfully !!!')
-    print('=========> TREND data: ', TREND_DOWN)
-
+def main(filename, code):
+    df = rw.load_data(cf.get_config('projectpath', 'path_data')+filename)
+    # draw_pyplot(df, code)
+    draw_kline(df, code)
     
-
 
 # example: python candle.py --style=pyplot
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--file', type=str, default='akshare_SH688981.xlsx', help='stock data filename')
-    parser.add_argument("--code", type=str, default='688981', help='stock symbol/code')
-    args = parser.parse_args()
-    main(args.file, args.code)
+    # parser = argparse.ArgumentParser()
+    # parser.add_argument('--file', type=str, default='akshare_SH688981.xlsx', help='stock data filename')
+    # parser.add_argument("--code", type=str, default='688981', help='stock symbol/code')
+    # args = parser.parse_args()
+    file = 'tencent_SH688981.xlsx'
+    code = '588000 科创50ETF'
+    main(file, code)

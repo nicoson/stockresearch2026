@@ -4,6 +4,7 @@ from pyecharts.commons.utils import JsCode
 from pyecharts.charts import Kline, Line, Bar, Grid
 # import os
 import numpy as np
+import pandas as pd
 
 # Pandas Dataframe -> Dict
 def arrange_data(pd_data) -> dict:
@@ -67,17 +68,31 @@ def cal_macd_adj(price):
         "deas": dea.values.tolist(),
     }
 
+def cal_obv(close, volume):
+    obv = [0]
+    for i in range(len(close)-1):
+        if close[i+1]>close[i]:
+            obv.append(obv[i]+volume[i+1])
+        else:
+            obv.append(obv[i]-volume[i+1])
+    
+    return obv
+
+
+def cal_bias(price, avgprice):
+    return [float("%.4f" % ((p-ap)/ap)) if ap!=None else None for p, ap in zip(price, avgprice)]
+
 def cal_ma(data, day_count: int):
     ma: List[Union[float, str]] = []
 
     for i in range(len(data)):
-        if i < day_count:
-            ma.append("-")
+        if i < (day_count-1):
+            ma.append(None)
             continue
         sum_total = 0.0
         for j in range(day_count):
             sum_total += float(data[i - j])
-        ma.append(abs(float("%.4f" % (sum_total / day_count))))
+        ma.append(float("%.4f" % (sum_total / day_count)))
     return ma
 
 def cal_move_std(data, day_count:int):
@@ -96,15 +111,15 @@ def cal_adjprice(amount, volume, day_count: int):
     adjprice: List[Union[float, str]] = []
 
     for i in range(len(amount)):
-        if i < day_count:
-            adjprice.append("-")
+        if i < (day_count-1):
+            adjprice.append(None)
             continue
         sum_amount = 0.0
         sum_volume = 0.0
         for j in range(day_count):
             sum_amount += float(amount[i - j])
             sum_volume += float(volume[i - j])
-        adjprice.append(abs(float("%.4f" % (sum_amount / sum_volume / 100))))
+        adjprice.append(float("%.4f" % (sum_amount / sum_volume / 100)))
     return adjprice
 
 def cal_adjprice_plus(amount, volume, div_adj, day_count: int):
@@ -112,15 +127,15 @@ def cal_adjprice_plus(amount, volume, div_adj, day_count: int):
     cost_daily_adj = [x/y/z  for x, y, z in zip(amount, volume, div_adj)]  # 计算日内平均交易成本（调整）
 
     for i in range(len(amount)):
-        if i < day_count:
-            adjprice.append("-")
+        if i < (day_count-1):
+            adjprice.append(None)
             continue
         sum_amount = 0.0    #计算加权分母累积和
         sum_weight = 0.0    #计算加权分子累积和
         for j in range(day_count):
             sum_amount += float(amount[i - j])
             sum_weight += cost_daily_adj[i - j] * float(amount[i - j])
-        adjprice.append(abs(float("%.4f" % (sum_weight / sum_amount))))
+        adjprice.append(float("%.4f" % (sum_weight / sum_amount)))
     return adjprice
 # 计算市场买卖势能
 # def cal_potential(pd_data):
@@ -128,23 +143,23 @@ def cal_adjprice_plus(amount, volume, div_adj, day_count: int):
 def cal_emotion(close, amount, volume, div_adj):
     cost_adj = [x/y/z  for x, y, z in zip(amount, volume, div_adj)]  # 计算日内平均交易成本（调整）
     # 收盘价 - 加权成本
-    emotion = [(x-y)/y for x, y in zip(close, cost_adj)]
+    emotion = [(c-p)/c for c, p in zip(close, cost_adj)]
     return emotion
 
 def cal_emotion_v2(high, low, amount, volume, div_adj):
     cost_adj = [x/y/z  for x, y, z in zip(amount, volume, div_adj)]  # 计算日内平均交易成本（调整）
     # 收盘价 - 加权成本
-    emotion = [(c - l)/(h-l)*100 if h>l else 100 for h, l, c in zip(high, low, cost_adj)]
+    emotion = [(c-l)/(h-l)*100 if h>l else 100 for h, l, c in zip(high, low, cost_adj)]
     return emotion
 
 def cal_opinion(high, low, amount, volume, div_adj):
     cost_adj = [x/y/z  for x, y, z in zip(amount, volume, div_adj)]  # 计算日内平均交易成本（调整）
     # 收盘价 - 加权成本
-    opinion = [(c - l)/(h - l)*100 if h>l else 100 for h, l, c in zip(high, low, cost_adj)]
+    opinion = [(c-l)/(h-l)*100 if h>l else 100 for h, l, c in zip(high, low, cost_adj)]
     return opinion
 
 def cal_opinion2(high, low, close):
-    opinion = [(h - l)/c*100 for h, l, c in zip(high, low, close)]
+    opinion = [(h-l)/c*100 for h, l, c in zip(high, low, close)]
     return opinion
 
 # 计算近N日价格走势的斜率
@@ -163,31 +178,21 @@ def cal_slope(close, day_count):
     
     return slope
 
-def cal_test(open, close, low, high, amount):
-    ohch = [0]
-    ohcl = [0]
-    olch = [0]
-    olcl = [0]
-    for i in range(1, len(open)):
-        ohch.append(0)
-        ohcl.append(0)
-        olch.append(0)
-        olcl.append(0)
-        strength = abs(float("%.4f" % ((close[i] - open[i])/close[i-1])))
-        # strength = amount[i]
-        if strength >= 0.02:
-            if open[i] >= close[i-1]:
-                if close[i] >= close[i-1]:
-                    ohch[i] = amount[i]#strength
-                else:
-                    ohcl[i] = amount[i]#strength
-            else:
-                if close[i] >= close[i-1]:
-                    olch[i] = amount[i]#strength
-                else:
-                    olcl[i] = amount[i]#strength
 
-    return ohcl
+# 计算近N日价格走势的斜率
+def cal_pricediff(close, amount, volume, div_adj, day_count):
+    adjprice_moveavg = cal_adjprice_plus(amount, volume, div_adj, day_count)
+    close_moveavg = cal_ma(close, day_count)
+    vol_movavg = cal_ma(volume, day_count)
+
+    return [(c-p)*v if not isinstance(c, str) else '-' for p,c,v in zip(adjprice_moveavg, close_moveavg, vol_movavg)]
+    # return [p-c if not isinstance(p, str) else '-' for p,c in zip(adjprice_moveavg, close_moveavg)]
+
+
+def cal_test(vols):
+    data = pd.DataFrame(vols,columns=['vols'])
+
+    return cal_macd(data['vols'])
 
 # open high close low, sell signal
 def cal_ohcl(open, close, low, high, amount, date):

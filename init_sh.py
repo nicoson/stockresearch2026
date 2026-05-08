@@ -1,7 +1,8 @@
 import os
 
 watchlist = [(dict(catagory = '大盘指数',
-    list = [['SH', '000001', '上证指数'],
+        list = [
+            # ['SH', '000001', '上证指数'],
             ['SH', '510050', '华夏上证50ETF'],
         ])),
     (dict(catagory = '科创板块',

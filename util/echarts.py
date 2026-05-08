@@ -456,6 +456,11 @@ def k_line(data, stock_code, cid=0, adj=True):
                 opts.DataZoomOpts(is_show=False, xaxis_index=[0, 2], range_start=90, range_end=100),
                 opts.DataZoomOpts(is_show=False, xaxis_index=[0, 3], range_start=90, range_end=100),
                 opts.DataZoomOpts(is_show=False, xaxis_index=[0, 4], range_start=90, range_end=100),
+                opts.DataZoomOpts(is_show=False, xaxis_index=[0, 5], range_start=90, range_end=100),
+                opts.DataZoomOpts(is_show=False, xaxis_index=[0, 6], range_start=90, range_end=100),
+                opts.DataZoomOpts(is_show=False, xaxis_index=[0, 7], range_start=90, range_end=100),
+                opts.DataZoomOpts(is_show=False, xaxis_index=[0, 8], range_start=90, range_end=100),
+                opts.DataZoomOpts(is_show=False, xaxis_index=[0, 9], range_start=90, range_end=100),
             ],
             # 三个图的 axis 连在一块
             axispointer_opts=opts.AxisPointerOpts(
@@ -841,11 +846,11 @@ def draw_line(xdata, ydata, series_name, title='', title_pos=100, opacity=0.9, l
                 font_size='14px', font_family="Microsoft YaHei")),
             xaxis_opts=opts.AxisOpts(
                 type_="category",
-                grid_index=1,
+                grid_index=cid,
                 axislabel_opts=opts.LabelOpts(is_show=False),
             ),
             yaxis_opts=opts.AxisOpts(
-                # grid_index=1,
+                # grid_index=cid,
                 # split_number=3,
                 is_scale=True,
                 splitline_opts=opts.SplitLineOpts(is_show=True)
@@ -931,7 +936,7 @@ def draw_chart(data, stock_code, savedir, adj=True):
 
     # 添加其他子图
     # grid的cid必须严格按照 grid_chart 的 add 顺序从0开始编号，否则html会报错。所以此处用函数来处理，避免出错
-    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['bias', 'volume', 'macd'], data=data, start_pos=490, height=100)
+    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['obv+', 'bias', 'volume', 'macd'], data=data, start_pos=490, height=100)
 
     # 保存 html 文件的文件名
     filename = savedir + "/kline_chart_" + stock_code + ".html"

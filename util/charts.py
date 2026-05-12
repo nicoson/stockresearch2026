@@ -313,7 +313,7 @@ echarts_data = [
 
 def split_data(origin_data) -> dict:
     datas = []
-    times = []
+    date = []
     vols = []
     macds = []
     difs = []
@@ -323,7 +323,7 @@ def split_data(origin_data) -> dict:
 
     for i in range(len(origin_data)):
         datas.append(origin_data[i][1:])
-        times.append(origin_data[i][0:1][0])
+        date.append(origin_data[i][0:1][0])
         vols.append(origin_data[i][5])
         macds.append(origin_data[i][7])
         difs.append(origin_data[i][8])
@@ -332,7 +332,7 @@ def split_data(origin_data) -> dict:
 
     return {
         "datas": datas,
-        "times": times,
+        "date": date,
         "vols": vols,
         "macds": macds,
         "difs": difs,
@@ -346,7 +346,7 @@ def split_data_part(data) -> Sequence:
     idx = 0
     tag = 0
     vols = 0
-    for i in range(len(data["times"])):
+    for i in range(len(data['date'])):
         if data["datas"][i][5] != 0 and tag == 0:
             idx = i
             vols = data["datas"][i][4]
@@ -398,12 +398,12 @@ def split_data_part(data) -> Sequence:
             vols = data["datas"][i][4]
     return mark_line_data
 
-# K线作图
+# K线作图（主图）
 def k_line(data, stock_code, cid=0, adj=True):
 # 主K线图
     kline = (
         Kline()
-        .add_xaxis(xaxis_data=data["times"])
+        .add_xaxis(xaxis_data=data['date'])
         .add_yaxis(
             series_name="",
             y_axis=data["datas"],
@@ -471,7 +471,7 @@ def k_line(data, stock_code, cid=0, adj=True):
         )
     )
     
-    signal_data = ana.cal_ohcl([row[0] for row in data["datas"]], [row[1] for row in data["datas"]], [row[2] for row in data["datas"]], [row[3] for row in data["datas"]], data['amount'], data['times'])
+    signal_data = ana.cal_ohcl(data['open'], data['close'], data['low'], data['high'], data['amount'],data['date'])
     avg_price = ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 1)
 
     signal_label_opts = opts.LabelOpts(
@@ -486,31 +486,96 @@ def k_line(data, stock_code, cid=0, adj=True):
 
     # 主图叠加
     (kline.overlap(draw_scatter(signal_data["date"], signal_data["value"], 'triangle', 10, 'red', label_opts=signal_label_opts, cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 5, opacity=0.9, line_type='solid', cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 10, opacity=0.9, line_type='solid', cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 20, opacity=0.9, line_type='solid', cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 40, opacity=0.9, line_type='solid', cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 60, opacity=0.9, line_type='solid', cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 120, opacity=0.9, line_type='solid', cid=cid))
-        .overlap(ma_line(data['times'], [row[1] for row in data["datas"]], 240, opacity=0.9, line_type='solid', cid=cid)))
+        .overlap(ma_line(data['date'], data['close'], 5, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 10, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 20, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 40, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 60, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 120, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 240, opacity=0.9, line_type='solid', cid=cid)))
 
     if adj:
-        (kline.overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 5, line_type='dashed', cid=cid))
-            .overlap(draw_scatter(data['times'], avg_price, 'line', 10, 'blue', label_opts=opts.LabelOpts(is_show = False), cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 10, line_type='dashed', cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 20, line_type='dashed', cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 40, line_type='dashed', cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 60, line_type='dashed', cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 120, line_type='dashed', cid=cid))
-            .overlap(ma_line_plus(data['times'], data["amount"], data["vols"], data["div_adj"], 240, line_type='dashed', cid=cid))
+        (kline.overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 5, line_type='dashed', cid=cid))
+            .overlap(draw_scatter(data['date'], avg_price, 'line', 10, 'blue', label_opts=opts.LabelOpts(is_show = False), cid=cid))
+            .overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 10, line_type='dashed', cid=cid))
+            .overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 20, line_type='dashed', cid=cid))
+            .overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 40, line_type='dashed', cid=cid))
+            .overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 60, line_type='dashed', cid=cid))
+            .overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 120, line_type='dashed', cid=cid))
+            .overlap(ma_line_plus(data['date'], data["amount"], data["vols"], data["div_adj"], 240, line_type='dashed', cid=cid))
         )
+
+    return kline
+
+# K线图（子图）
+def k_line_sub(data, stock_code, cid=0):
+    kline = (
+        Kline()
+        .add_xaxis(xaxis_data=data['date'])
+        .add_yaxis(
+            series_name="",
+            y_axis=data["datas"],
+            itemstyle_opts=opts.ItemStyleOpts(
+                color="#ef232a",
+                color0="#14b143",
+                border_color="#ef232a",
+                border_color0="#14b143",
+            ),
+            markline_opts=opts.MarkLineOpts(
+                label_opts=opts.LabelOpts(
+                    position="middle", color="blue", font_size=15
+                ),
+                symbol=["circle", "none"],
+            ),
+        )
+        # .set_series_opts(
+        #     markarea_opts=opts.MarkAreaOpts(is_silent=True, data=split_data_part(data))
+        # )
+        .set_global_opts(
+            title_opts=opts.TitleOpts(title=stock_code, pos_left="100px", pos_top="490px", title_textstyle_opts=opts.TextStyleOpts(
+                font_size='14px', font_family="Microsoft YaHei")),
+            xaxis_opts=opts.AxisOpts(
+                type_="category",
+                grid_index=cid,
+                axislabel_opts=opts.LabelOpts(is_show=False),
+            ),
+            # yaxis_opts=opts.AxisOpts(
+            #     is_scale=True, splitline_opts=opts.SplitLineOpts(is_show=True)
+            # ),
+            legend_opts=opts.LegendOpts(is_show=False),
+            # tooltip_opts=opts.TooltipOpts(
+            #     trigger="axis", 
+            #     axis_pointer_type="cross",
+            #     # position = [10,10],
+            # ),
+            # # 三个图的 axis 连在一块
+            # axispointer_opts=opts.AxisPointerOpts(
+            #     is_show=True,
+            #     link=[{"xAxisIndex": "all"}],
+            #     label=opts.LabelOpts(background_color="#777"),
+            # ),
+        )
+    )
+    
+
+    # 主图叠加
+    (kline.overlap(ma_line(data['date'], data['close'], 5, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 10, opacity=0.9, line_type='solid', cid=cid))
+        # .overlap(ma_line(data['date'], data['close'], 20, opacity=0.9, line_type='solid', cid=cid))
+        # .overlap(ma_line(data['date'], data['close'], 40, opacity=0.9, line_type='solid', cid=cid))
+        # .overlap(ma_line(data['date'], data['close'], 60, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 120, opacity=0.9, line_type='solid', cid=cid))
+        .overlap(ma_line(data['date'], data['close'], 240, opacity=0.9, line_type='solid', cid=cid)))
 
     return kline
 
 # MACD (Overlap Bar + Line)
 def macd_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata = data["macds"]
+    xdata = data['date']
+    macd_data = ana.cal_macd(data['close'])
+    ydata = macd_data['macds']
+    difs_data = macd_data['difs']
+    deas_data = macd_data['deas']
     itemstyle_opts = opts.ItemStyleOpts(
         color=JsCode(
             """
@@ -527,14 +592,13 @@ def macd_bar(data, title_pos=100, cid=0):
         ),
     )
     mbar = draw_bar(xdata, ydata, "MACD", title_pos=title_pos, itemstyle_opts=itemstyle_opts, cid=cid)
-
-    return (mbar.overlap(draw_line(xdata, data["difs"], 'DIF', opacity=1, line_type='solid', cid=cid))
-            .overlap(draw_line(xdata, data["deas"], 'DEA', opacity=1, line_type='solid', cid=cid)))
+    return (mbar.overlap(draw_line(xdata, difs_data, 'DIF', opacity=1, line_type='solid', cid=cid))
+            .overlap(draw_line(xdata, deas_data, 'DEA', opacity=1, line_type='solid', cid=cid)))
 
 # OBV (能量潮 obv + maobv)
 def obv_line(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata = ana.cal_obv([row[1] for row in data['datas']], data['vols'])
+    xdata =data['date']
+    ydata = ana.cal_obv(data['close'], data['vols'])
     baseline = draw_line(xdata, ydata, "OBV", title='OBV', title_pos=title_pos, opacity=1, line_type='solid', cid=cid)
     return (baseline.overlap(ma_line(xdata, ydata, 5, opacity=0.9, line_type='solid', cid=cid))
             .overlap(ma_line(xdata, ydata, 10, opacity=0.9, line_type='solid', cid=cid))
@@ -543,7 +607,7 @@ def obv_line(data, title_pos=100, cid=0):
 
 # OBV+ (高阶能量潮)
 def obv_line_plus(data, title_pos=100, cid=0):
-    xdata = data['times']
+    xdata = data['date']
     price = ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 1)
     ydata = ana.cal_obv(price, data['vols'])
     baseline = draw_line(xdata, ydata, "OBV+", title='OBV+', title_pos=title_pos, opacity=1, line_type='solid', cid=cid)
@@ -554,8 +618,8 @@ def obv_line_plus(data, title_pos=100, cid=0):
 
 # BIAS (乖离率)
 def bias_line(data, title_pos=100, cid=0):
-    xdata = data['times']
-    close = [row[1] for row in data['datas']]
+    xdata =data['date']
+    close = data['close']
     ydata = ana.cal_bias(close, ana.cal_ma(close, 5))
     baseline = draw_line(xdata, ydata, "BIAS 5", title='BIAS', title_pos=title_pos, opacity=1, line_type='solid', cid=cid)
     return (baseline.overlap(draw_line(xdata, ana.cal_bias(close, ana.cal_ma(close, 10)), "BIAS 10", title='BIAS', title_pos=100, opacity=1, line_type='solid', cid=cid))
@@ -578,7 +642,7 @@ def ma_line_plus(xdata, amount, volume, div_adj, day_count, opacity=0.9, line_ty
 
 # 交易量柱状图
 def vol_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
+    xdata =data['date']
     ydata = data["vols"]
     # 根据 echarts demo 的原版是这么写的
     # itemstyle_opts=opts.ItemStyleOpts(
@@ -612,14 +676,14 @@ def vol_bar(data, title_pos=100, cid=0):
         opacity=0.3,
     )
     vbar = draw_bar(xdata, ydata, "交易量", title_pos=title_pos, itemstyle_opts=itemstyle_opts, cid=cid)
-    return (vbar.overlap(ma_line(data['times'], data["vols"], 5, opacity=1, cid=cid))
-            .overlap(ma_line(data['times'], data["vols"], 10, opacity=1, cid=cid))
-            .overlap(ma_line(data['times'], data["vols"], 20, opacity=1, cid=cid))
-            .overlap(ma_line(data['times'], data["vols"], 60, opacity=1, cid=cid)))
+    return (vbar.overlap(ma_line(data['date'], data["vols"], 5, opacity=1, cid=cid))
+            .overlap(ma_line(data['date'], data["vols"], 10, opacity=1, cid=cid))
+            .overlap(ma_line(data['date'], data["vols"], 20, opacity=1, cid=cid))
+            .overlap(ma_line(data['date'], data["vols"], 60, opacity=1, cid=cid)))
 
 # 交易额柱状图
 def amt_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
+    xdata =data['date']
     ydata = data["amount"]
     itemstyle_opts = opts.ItemStyleOpts(
         color=JsCode(
@@ -641,7 +705,7 @@ def amt_bar(data, title_pos=100, cid=0):
 
 # 换手率趋势图
 def turnover_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
+    xdata =data['date']
     ydata = data["turnover"]
     itemstyle_opts = opts.ItemStyleOpts(
         color=JsCode(
@@ -661,16 +725,16 @@ def turnover_bar(data, title_pos=100, cid=0):
     )
 
     tbar = draw_bar(xdata, ydata, "换手率移动平均线", title_pos=title_pos, itemstyle_opts=itemstyle_opts, cid=cid)
-    return (tbar.overlap(ma_line(data['times'], data["turnover"], 5, opacity=1, cid=cid))
-            .overlap(ma_line(data['times'], data["turnover"], 10, opacity=1, cid=cid))
-            .overlap(ma_line(data['times'], data["turnover"], 20, opacity=1, cid=cid))
-            .overlap(ma_line(data['times'], data["turnover"], 60, opacity=1, cid=cid)))
+    return (tbar.overlap(ma_line(data['date'], data["turnover"], 5, opacity=1, cid=cid))
+            .overlap(ma_line(data['date'], data["turnover"], 10, opacity=1, cid=cid))
+            .overlap(ma_line(data['date'], data["turnover"], 20, opacity=1, cid=cid))
+            .overlap(ma_line(data['date'], data["turnover"], 60, opacity=1, cid=cid)))
 
 # 交易情绪柱状图
 def emotion_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata = ana.cal_emotion([row[1] for row in data['datas']], data['amount'], data['vols'], data['div_adj'])
-    # ydata = ana.cal_emotion_v2([row[3] for row in data['datas']], [row[2] for row in data['datas']], data['amount'], data['vols'], data['div_adj'])
+    xdata =data['date']
+    ydata = ana.cal_emotion(data['close'], data['amount'], data['vols'], data['div_adj'])
+    # ydata = ana.cal_emotion_v2(data['high'], data['low'], data['amount'], data['vols'], data['div_adj'])
     itemstyle_opts = opts.ItemStyleOpts(
         color=JsCode(
             """
@@ -690,33 +754,33 @@ def emotion_bar(data, title_pos=100, cid=0):
     return vbar
 
 def opinion_bar(data, title_pos=100, cid=0):
-    # opinion = ana.cal_opinion([row[3] for row in data['datas']], [row[2] for row in data['datas']], data['amount'], data['vols'], data['div_adj'])
+    # opinion = ana.cal_opinion(data['high'], data['low'], data['amount'], data['vols'], data['div_adj'])
     # opi_std = ana.cal_move_std(opinion, 5)
-    xdata = data['times']
-    opinion = ana.cal_opinion2([row[3] for row in data['datas']], [row[2] for row in data['datas']], [row[1] for row in data['datas']])
+    xdata =data['date']
+    opinion = ana.cal_opinion2(data['high'], data['low'], data['close'])
     vbar = draw_bar(xdata, opinion, "多空分歧柱状图", title_pos=title_pos, cid=cid)
     return vbar
-    # return (vbar.overlap(ma_line(data['times'], opinion, 5, opacity=1, cid=cid)))
+    # return (vbar.overlap(ma_line(data['date'], opinion, 5, opacity=1, cid=cid)))
 
 # 实际成本均线差异柱状图
 def realcostdif_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata_5 = [(x-y)/x*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 5), ana.cal_ma([row[1] for row in data["datas"]], 5))]
+    xdata =data['date']
+    ydata_5 = [(x-y)/x*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 5), ana.cal_ma(data['close'], 5))]
     return draw_bar(xdata, ydata_5, "短期实际成本差异柱状图", title_pos=title_pos, cid=cid)
 
 def test_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
+    xdata =data['date']
     adjprice_moveavg = ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 1)
     ydata = [0]
-    open = [row[0] for row in data['datas']]
-    close = [row[1] for row in data['datas']]
-    high = [row[3] for row in data['datas']]
-    low = [row[2] for row in data['datas']]
+    open = data['open']
+    close = data['close']
+    high = data['high']
+    low = data['low']
     for i in range(len(adjprice_moveavg)-1):
         # ydata.append((adjprice_moveavg[i+1]-adjprice_moveavg[i])*data['vols'][i+1])
         # ydata.append(adjprice_moveavg[i+1]-close[i])
         ydata.append(adjprice_moveavg[i+1]-(high[i]+low[i])/2)
-    # ydata = ana.cal_pricediff([row[1] for row in data['datas']], data['amount'], data['vols'], data['div_adj'], 1)
+    # ydata = ana.cal_pricediff(data['close'], data['amount'], data['vols'], data['div_adj'], 1)
     itemstyle_opts = opts.ItemStyleOpts(
         color=JsCode(
             """
@@ -735,18 +799,17 @@ def test_bar(data, title_pos=100, cid=0):
     mbar = draw_bar(xdata, ydata, "TEST", title_pos=title_pos, itemstyle_opts=itemstyle_opts, cid=cid)
 
     return mbar
-     
-    
+
 # 短周期价格斜率柱状图
 def slope_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata = ana.cal_slope([row[1] for row in data["datas"]], 10)
+    xdata =data['date']
+    ydata = ana.cal_slope(data['close'], 10)
     return draw_bar(xdata, ydata, "短周期趋势强度", title_pos=title_pos, cid=cid)
 
 # 短周期价格斜率柱状图
 def pricediff_bar(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata = ana.cal_pricediff([row[1] for row in data["datas"]], data["amount"], data["vols"], data['div_adj'], 60)
+    xdata =data['date']
+    ydata = ana.cal_pricediff(data['close'], data["amount"], data["vols"], data['div_adj'], 60)
     itemstyle_opts = opts.ItemStyleOpts(
         color=JsCode(
             """
@@ -767,14 +830,14 @@ def pricediff_bar(data, title_pos=100, cid=0):
 
 # 实际成本均线差异曲线图
 def realcostdif_line(data, title_pos=100, cid=0):
-    xdata = data['times']
-    ydata_5 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 5), ana.cal_ma([row[1] for row in data["datas"]], 5))]
-    ydata_10 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 10), ana.cal_ma([row[1] for row in data["datas"]], 10))]
-    ydata_20 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 20), ana.cal_ma([row[1] for row in data["datas"]], 20))]
-    ydata_40 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 40), ana.cal_ma([row[1] for row in data["datas"]], 40))]
-    ydata_60 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 60), ana.cal_ma([row[1] for row in data["datas"]], 60))]
-    ydata_120 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 120), ana.cal_ma([row[1] for row in data["datas"]], 120))]
-    ydata_240 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 240), ana.cal_ma([row[1] for row in data["datas"]], 240))]
+    xdata =data['date']
+    ydata_5 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 5), ana.cal_ma(data['close'], 5))]
+    ydata_10 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 10), ana.cal_ma(data['close'], 10))]
+    ydata_20 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 20), ana.cal_ma(data['close'], 20))]
+    ydata_40 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 40), ana.cal_ma(data['close'], 40))]
+    ydata_60 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 60), ana.cal_ma(data['close'], 60))]
+    ydata_120 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 120), ana.cal_ma(data['close'], 120))]
+    ydata_240 = [(y-x)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 240), ana.cal_ma(data['close'], 240))]
     baseline = draw_line(xdata, ydata_5, "MA"+str(5), opacity=1, line_type='solid', cid=cid)
     baseline.set_global_opts(
         title_opts=opts.TitleOpts(title="实际成本均线差异柱状图", pos_left="100px", pos_top=str(title_pos)+"px", title_textstyle_opts=opts.TextStyleOpts(
@@ -796,7 +859,7 @@ def realcostdif_line(data, title_pos=100, cid=0):
 
 # 成本空间曲线图
 def costspace_line(data, title_pos=100, cid=0):
-    xdata = data['times']
+    xdata =data['date']
     adj_price = ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 1)
     ydata_5 = [(x-y)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 5), adj_price)]
     ydata_10 = [(x-y)/y*100 if not isinstance(x, str) else '-' for x,y in zip(ana.cal_adjprice_plus(data['amount'], data['vols'], data['div_adj'], 10), adj_price)]
@@ -918,10 +981,12 @@ def draw_scatter(xdata, ydata, symble, symbol_size, color, label_opts='', cid=0)
     )
 
 # 绘制整个图表
-def draw_chart(data, stock_code, savedir, adj=True):
+def draw_chart(data, stock_code, savedir, adj=True, data2=None, c2=None):
     # 绘制的 Grid
     # 全局配置参见：https://pyecharts.org/#/zh-cn/global_options?id=initopts%ef%bc%9a%e5%88%9d%e5%a7%8b%e5%8c%96%e9%85%8d%e7%bd%ae%e9%a1%b9
-    grid_chart = Grid(init_opts=opts.InitOpts(width = "1200px", height="1000px"))
+    chart_set=['obv+', 'slope', 'volume', 'macd']
+    canvas_height = (490 if data2==None else 620) + len(chart_set)*130
+    grid_chart = Grid(init_opts=opts.InitOpts(width = "1200px", height=str(canvas_height) + "px"))
 
     # 这个是为了把 data.datas 这个数据写入到 html 中,还没想到怎么跨 series 传值
     # 配合 vol_bar 函数中对 itemstyle_opts 进行赋值，需要额外的K线数据
@@ -934,20 +999,18 @@ def draw_chart(data, stock_code, savedir, adj=True):
         grid_opts=opts.GridOpts(pos_left="7%", pos_right="1%", height="350px"),
     )
 
+    if data2 != None:
+        kline2 = k_line_sub(data2, c2, cid=1)    # k 线图
+        grid_chart.add(
+            kline2,
+            grid_opts=opts.GridOpts(pos_left="7%", pos_right="1%", pos_top="490px", height="100px"),
+        )
+
     # 添加其他子图
     # grid的cid必须严格按照 grid_chart 的 add 顺序从0开始编号，否则html会报错。所以此处用函数来处理，避免出错
-    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=['obv+', 'bias', 'volume', 'macd'], data=data, start_pos=490, height=100)
+    grid_chart = draw_subchart(grid_body=grid_chart, chart_set=chart_set, data=data, start_pos=490 if data2==None else 620, height=100, start_cid=(1 if data2 is None else 2))
+    save_grid(grid_chart, "kline_chart_" + stock_code + ".html", savedir)
 
-    # 保存 html 文件的文件名
-    filename = savedir + "/kline_chart_" + stock_code + ".html"
-    # grid_chart.render_notebook()
-    grid_chart.render(filename)
-    # 优化html文件
-    html_modify(filename)
-    print('==========>  done: html charts files generated successfully !!!')
-
-    # 在浏览器中打开图表文件
-    # os.system('open ' + filename)
 
 # 替换pycharts中默认使用的echarts组件地址，避免该文件不可访问的问题
 def html_modify(filedir):
@@ -979,9 +1042,9 @@ chart_funcs = {
 }
 
 # 绘制子图表
-def draw_subchart(grid_body, chart_set, data, start_pos=490, height=100):
+def draw_subchart(grid_body, chart_set, data, start_pos=490, height=100, start_cid=0):
     for i in range(len(chart_set)):
-        subchart = chart_funcs.get(chart_set[i], 'volume')(data, title_pos=start_pos, cid=i+1)
+        subchart = chart_funcs.get(chart_set[i], 'volume')(data, title_pos=start_pos, cid=start_cid+i)
         grid_body.add(
             subchart,
             grid_opts=opts.GridOpts(
@@ -991,6 +1054,19 @@ def draw_subchart(grid_body, chart_set, data, start_pos=490, height=100):
         start_pos = start_pos + 130
     return grid_body
 
+def new_grid(width, height):
+    return Grid(init_opts=opts.InitOpts(width = str(width) + "px", height=str(height) + "px"))
+
+def save_grid(grid_chart, filename, savedir):
+    # 保存 html 文件的文件名
+    filedir = savedir + filename
+    # grid_chart.render_notebook()
+    grid_chart.render(filedir)
+    # 优化html文件
+    html_modify(filedir)
+    print('==========>  done: files [' + filename + '] generated successfully !!!')
+    # 在浏览器中打开图表文件
+    # os.system('open ' + filedir)
 
 if __name__ == "__main__":
     data = split_data(origin_data=echarts_data)

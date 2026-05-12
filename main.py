@@ -1,4 +1,4 @@
-from util import echarts as ec
+from stock.util import charts as charts
 
-data = ec.get_data()
+data = charts.get_data()
 print(data)

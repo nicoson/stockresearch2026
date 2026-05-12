@@ -5,28 +5,32 @@ from util import config as cf
 from util import rw as rw
 
 def fetch_data(market='SH', code=None, source=None, filename=None):
-    # 如果有本地文件，则优先加载本地文件。否则再请求在线数据
-    df_local = rw.load_data(filename)
-    if df_local is not None:
-        start_year = int(df_local['date'].iloc[-1][:4])
-        df_local = df_local[df_local['date']<str(start_year)]  # 删除最近一年的数据
-    else:
-        start_year = 1990
+    if source != 'SSE_RZRQ':
+        # 如果有本地文件，则优先加载本地文件。否则再请求在线数据
+        df_local = rw.load_data(filename)
+        if df_local is not None:
+            start_year = int(df_local['date'].iloc[-1][:4])
+            df_local = df_local[df_local['date']<str(start_year)]  # 删除最近一年的数据
+        else:
+            start_year = 1990
 
-    if source == 'tencent' and code != None:
-        df_new = fetch_data_tencent(market, code, start_year)
-    elif source == 'tushare' and code != None:
-        df_new = fetch_data_tushare(market, code, start_year)
-    elif source == 'akshare' and code != None:
-        df_new = fetch_data_akshare(market, code, start_year)
-    else:
-        df_new = None
-        print('function [get_data]: Parameter error !!!')
+        if source == 'tencent' and code != None:
+            df_new = fetch_data_tencent(market, code, start_year)
+        elif source == 'tushare' and code != None:
+            df_new = fetch_data_tushare(market, code, start_year)
+        elif source == 'akshare' and code != None:
+            df_new = fetch_data_akshare(market, code, start_year)
+        else:
+            df_new = None
+            print('function [get_data]: Parameter error !!!')
 
-    df_new[["open", "close", "high", "low", "volume", "amount", "turnover"]] = df_new[["open", "close", "high", "low", "volume", "amount", "turnover"]].astype(float)
-    # df_new[["dividend", "finance"]] = df_new[["dividend", "finance"]].astype(str)
-    pd_data = pd.concat([df_local, df_new])
-    pd_data = pd_data.reset_index(drop=True)
+        df_new[["open", "close", "high", "low", "volume", "amount", "turnover"]] = df_new[["open", "close", "high", "low", "volume", "amount", "turnover"]].astype(float)
+        # df_new[["dividend", "finance"]] = df_new[["dividend", "finance"]].astype(str)
+        pd_data = pd.concat([df_local, df_new])
+        pd_data = pd_data.reset_index(drop=True)
+    else:
+        # 融资融券数据单独处理
+        pd_data = fetch_data_sse_rzrq()
 
     print(pd_data.shape)
     return pd_data
@@ -97,6 +101,14 @@ def fetch_data_tencent(market='SH', code='588000', start_year=1990):
     # df = div_adj_cal(df)
     return df
 
+def fetch_data_sse_rzrq():
+    df = pd.read_json('./data/rzrq_sse.json')
+    df['opDate'] = df['opDate'] = [str(item)[0:4]+'-'+str(item)[4:6]+'-'+str(item)[6:] for item in df['opDate']]
+    # [日期， 融资余额， 融资买入额，融券余量，融券余量金额，融券卖出量，融资融券余额(元)，融资融券交易总量]
+    df = df.reindex(columns=["opDate", "rzye", "rzmre", "rzche", "rqyl", "rqylje", "rqmcl", "rzrqjyzl"])
+    df = df.rename(columns={'opDate':'date'})
+    return df
+
 def main(market, code, source):
     filename = cf.get_config('projectpath', 'path_data')+source+'_'+market+code+'.xlsx'
     print('\n######### start fetching data: ', market+code)
@@ -109,10 +121,11 @@ def main(market, code, source):
 # example: python download_data.py --market=SH --code=588000 --source=tencent
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--market', type=str, default='SH', help='stock market[SH, SZ, BJ, FUND]')
-    parser.add_argument("--code", type=str, default='688981', help='stock symbol/code')
+    parser.add_argument('--market', type=str, default='', help='stock market[SH, SZ, BJ, FUND, SSE_RZRQ]')
+    parser.add_argument("--code", type=str, default='', help='stock symbol/code')
     parser.add_argument('--source', default='tencent', help='data source[tencent, akshare, tushare]')
     args = parser.parse_args()
 
-    main(args.market, args.code, args.source)
+    # main(args.market, args.code, args.source)
     # main('SH', '510050', 'tencent')
+    main('','','SSE_RZRQ')

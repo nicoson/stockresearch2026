@@ -1,7 +1,4 @@
 from typing import List, Sequence, Union
-from pyecharts import options as opts
-from pyecharts.commons.utils import JsCode
-from pyecharts.charts import Kline, Line, Bar, Grid
 # import os
 import numpy as np
 import pandas as pd
@@ -11,26 +8,36 @@ def arrange_data(pd_data) -> dict:
     # 根据除权系数对价格数据进行调整，此处固定使用【前复权】
     if pd_data.get('dividend') is not None:
         div_adj = div_adj_cal(pd_data)
-        pd_data['open'] = pd_data['open'] / div_adj
+        pd_data['open']  = pd_data['open']  / div_adj
         pd_data['close'] = pd_data['close'] / div_adj
-        pd_data['low'] = pd_data['low'] / div_adj
-        pd_data['high'] = pd_data['high'] / div_adj
+        pd_data['low']   = pd_data['low']   / div_adj
+        pd_data['high']  = pd_data['high']  / div_adj
     else:
         div_adj = [1 for i in range(len(pd_data['date']))]
 
-    macd_data = cal_macd(pd_data['close'])
-    # macd_data = cal_macd_adj(pd_data['close'])
     return {
-        "datas": pd_data[['open', 'close', 'low', 'high', 'volume']].values.tolist(),
-        "times": pd_data['date'].astype(str).values.tolist(),
-        "vols": pd_data['volume'].values.tolist(),
-        "amount": pd_data['amount'].values.tolist(),
-        "div_adj": div_adj,
+        "date":     pd_data['date'].astype(str).values.tolist(),
+        "datas":    pd_data[['open', 'close', 'low', 'high', 'volume']].values.tolist(),
+        "open":     pd_data['open'].values.tolist(),
+        "close":    pd_data['close'].values.tolist(),
+        "low":      pd_data['low'].values.tolist(),
+        "high":     pd_data['high'].values.tolist(),
+        "vols":     pd_data['volume'].values.tolist(),
+        "amount":   pd_data['amount'].values.tolist(),
+        "div_adj":  div_adj,
         "turnover": pd_data['volume'].values.tolist() if pd_data.get('turnover') is None else pd_data['turnover'].values.tolist(),
-        "macds": macd_data['macds'],
-        "difs": macd_data['difs'],
-        "deas": macd_data['deas'],
     }
+
+def match_data(pd_data1, pd_data2):
+    # 整合两组数据，按照时间取交集，便于后续k线图数据对其
+    d_t1 = pd_data1.set_index('date')
+    d_t2 = pd_data2.set_index('date')
+    common_index = d_t1.index.intersection(d_t2.index)
+    d_t1 = d_t1.loc[common_index]
+    d_t2 = d_t2.loc[common_index]
+    df = d_t1.reset_index(drop=False)
+    df2 = d_t2.reset_index(drop=False)
+    return df, df2
 
 # 除权系数计算
 def div_adj_cal(df):
@@ -45,15 +52,16 @@ def div_adj_cal(df):
     return div_adj
 
 def cal_macd(price):
+    price = pd.DataFrame(price)
     exp12 = price.ewm(span=12, adjust=False).mean()
     exp26 = price.ewm(span=26, adjust=False).mean()
     dif = exp12 - exp26
     dea = dif.ewm(span=9, adjust=False).mean()
     macds = dif - dea
     return {
-        "macds": macds.values.tolist(),
-        "difs": dif.values.tolist(),
-        "deas": dea.values.tolist(),
+        "macds": macds[0].values.tolist(),
+        "difs": dif[0].values.tolist(),
+        "deas": dea[0].values.tolist(),
     }
 
 def cal_macd_adj(price):
@@ -77,7 +85,6 @@ def cal_obv(close, volume):
             obv.append(obv[i]-volume[i+1])
     
     return obv
-
 
 def cal_bias(price, avgprice):
     return [float("%.4f" % ((p-ap)/ap)) if ap!=None else None for p, ap in zip(price, avgprice)]
@@ -172,12 +179,11 @@ def cal_slope(close, day_count):
             continue
 
         x = np.array([j for j in range(0,day_count)])
-        y = np.array(close[(i+1-day_count):(i+1)])
+        y = np.array(close[(i+1-day_count):(i+1)])/close[i+1-day_count] #做归一化处理
         coefficients = np.polyfit(x, y, 1)
-        slope.append(float(coefficients[0]/close[i+1-day_count]))
+        slope.append(float(coefficients[0]))
     
     return slope
-
 
 # 计算近N日价格走势的斜率
 def cal_pricediff(close, amount, volume, div_adj, day_count):
@@ -187,7 +193,6 @@ def cal_pricediff(close, amount, volume, div_adj, day_count):
 
     return [(c-p)*v if not isinstance(c, str) else '-' for p,c,v in zip(adjprice_moveavg, close_moveavg, vol_movavg)]
     # return [p-c if not isinstance(p, str) else '-' for p,c in zip(adjprice_moveavg, close_moveavg)]
-
 
 def cal_test(vols):
     data = pd.DataFrame(vols,columns=['vols'])

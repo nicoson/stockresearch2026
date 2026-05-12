@@ -2,7 +2,7 @@ import os
 
 watchlist = [(dict(catagory = '大盘指数',
         list = [
-            # ['SH', '000001', '上证指数'],
+            ['SH', '000001', '上证指数'],
             ['SH', '510050', '华夏上证50ETF'],
         ])),
     (dict(catagory = '科创板块',
@@ -12,6 +12,12 @@ watchlist = [(dict(catagory = '大盘指数',
             ['SH', '688256', '寒武纪'],
             ['SH', '688802', '沐曦股份'],
             ['SH', '688111', '金山办公'],
+        ])),
+    (dict(catagory = '芯片、算力、光模块',
+        list = [
+            ['SZ', '000988', '华工科技'],
+            ['SZ', '002281', '光迅科技'],
+            ['SZ', '002428', '云南锗业'],
         ])),
     (dict(catagory = '创业板',
         list = [
@@ -32,7 +38,6 @@ watchlist = [(dict(catagory = '大盘指数',
             ['SZ', '002460', '赣锋锂业'],
             ['SH', '600547', '山东黄金'],
             ['SZ', '000807', '云铝股份'],
-            ['SZ', '002428', '云南锗业'],
         ]
     )),
     (dict(catagory = '新能源汽车',
@@ -99,6 +104,7 @@ done
 
 if [ "$type" == "all" -o "$type" == "download" ] ; then
     echo "starting download data ...";
+    python download_data.py --source=SSE_RZRQ  #上证融资融券数据
 '''
     
     for item in watchlist:
@@ -112,7 +118,7 @@ echo "starting update charts ...";
 
     for item in watchlist:
         for stock in item['list']:
-            temp = temp + '    python candle.py --style=echarts --file=tencent_{0}{1}.xlsx --code="{1} {2}"\n'.format(*stock)
+            temp = temp + '    python candle.py --style=echarts --file=tencent_{0}{1}.xlsx --code="{1} {2}" --file2=tencent_SH000001.xlsx --code2="000001 上证指数"\n'.format(*stock)
 
     temp = temp + 'fi'
 
